@@ -22,7 +22,7 @@ class Game : public GameBase
     Game(void* const match);
     virtual ~Game() {}
     /* Return true when is_over_ switch from false to true */
-    virtual bool /*__cdecl*/ StartGame(const bool is_public, const uint64_t player_num) override;
+    virtual bool /*__cdecl*/ StartGame(const bool is_public, const uint64_t user_num,const uint64_t com_num) override;
     virtual ErrCode /*__cdecl*/ HandleRequest(const uint64_t pid, const bool is_public, const char* const msg) override;
     virtual ErrCode /*__cdecl*/ HandleLeave(const uint64_t pid, const bool is_public) override;
     virtual ErrCode /*__cdecl*/ HandleTimeout(const bool* const stage_is_over) override;
@@ -38,8 +38,10 @@ class Game : public GameBase
     void* const match_;
     std::unique_ptr<MainStageBase> main_stage_;
     bool is_over_;
+    uint64_t user_controlled_num_;
+    uint64_t com_num_;
     std::optional<std::vector<int64_t>> scores_;
-    SpinLock lock_;
+    std::mutex lock_;
     const Command<void(const replier_t&)> help_cmd_;
     GameOption options_;
 };

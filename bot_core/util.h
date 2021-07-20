@@ -6,6 +6,7 @@
 #include <optional>
 #include <set>
 #include <cassert>
+#include <variant>
 
 #include "bot_core.h"
 #include "game_framework/game_main.h"
@@ -83,6 +84,7 @@ class MatchManager
     ErrCode NewMatch(const GameHandle& game_handle, const UserID uid, const std::optional<GroupID> gid,
                      const bool skip_config, const replier_t reply);
     ErrCode ConfigOver(const UserID uid, const std::optional<GroupID> gid, const replier_t reply);
+    ErrCode SetComNum(const UserID uid, const std::optional<GroupID> gid, const replier_t reply, const uint64_t com_num);
     ErrCode StartGame(const UserID uid, const std::optional<GroupID> gid, const replier_t reply);
     ErrCode AddPlayerToPrivateGame(const MatchID mid, const UserID uid, const replier_t reply);
     ErrCode AddPlayerToPublicGame(const GroupID gid, const UserID uid, const replier_t reply);
@@ -94,6 +96,8 @@ class MatchManager
     void ForEachMatch(const std::function<void(const std::shared_ptr<Match>)>);
 
    private:
+    std::variant<ErrCode, std::shared_ptr<Match>> UnsafeGetMatchByHost_(
+            const UserID uid, const std::optional<GroupID> gid, const replier_t reply);
     ErrCode AddPlayer_(const std::shared_ptr<Match>& match, const UserID, const replier_t reply);
     void DeleteMatch_(const MatchID id);
     template <typename IDType>

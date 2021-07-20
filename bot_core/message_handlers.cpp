@@ -73,6 +73,11 @@ static ErrCode config_over(BotCtx& bot, const UserID uid, const std::optional<Gr
     return bot.match_manager().ConfigOver(uid, gid, reply);
 }
 
+static ErrCode set_com_num(BotCtx& bot, const UserID uid, const std::optional<GroupID>& gid, const replier_t reply, const uint64_t com_num)
+{
+    return bot.match_manager().SetComNum(uid, gid, reply, com_num);
+}
+
 static ErrCode start_game(BotCtx& bot, const UserID uid, const std::optional<GroupID>& gid, const replier_t reply)
 {
     return bot.match_manager().StartGame(uid, gid, reply);
@@ -167,27 +172,23 @@ static ErrCode show_match_status(BotCtx& bot, const UserID uid, const std::optio
     } else {
         sender << UserMsg(match->host_uid());
     }
-    const auto print_player = [&sender, &match](const UserID uid)
-    {
-        if (match->gid().has_value()) {
-            sender << GroupUserMsg(uid, *match->gid());
-        } else {
-            sender << UserMsg(uid);
-        }
-    };
     if (match->state() == Match::State::IS_STARTED) {
         const auto num = match->PlayerNum();
         sender << "\n玩家列表：" << num << "人";
         for (uint64_t pid = 0; pid < num; ++pid) {
             sender << "\n" << pid << "号：";
-            print_player(match->pid2uid(pid));
+            match->PrintPlayer<false>(sender, pid);
         }
     } else {
         const std::set<UserID>& ready_uid_set = match->ready_uid_set();
         sender << "\n当前报名玩家：" << ready_uid_set.size() << "人";
         for (const UserID uid : ready_uid_set) {
             sender << "\n";
-            print_player(uid);
+            if (match->gid().has_value()) {
+                sender << GroupUserMsg(uid, *match->gid());
+            } else {
+                sender << UserMsg(uid);
+            }
         }
     }
     return EC_OK;
@@ -229,6 +230,7 @@ static ErrCode show_profile(BotCtx& bot, const UserID uid, const std::optional<G
 #endif
 
 const std::vector<MetaCommand> meta_cmds = {
+        // GAME INFO: can be executed at any time
         make_command(
                 "查看帮助",
                 [](BotCtx& bot, const UserID uid, const std::optional<GroupID> gid, const replier_t reply) {
@@ -244,13 +246,17 @@ const std::vector<MetaCommand> meta_cmds = {
         make_command("查看当前所有未开始的私密比赛", show_private_matches, VoidChecker("#私密游戏列表")),
         make_command("查看已加入，或该房间正在进行的比赛信息", show_match_status, VoidChecker("#游戏信息")),
 
+        // NEW GAME: can only be executed by host
         make_command("在当前房间建立公开游戏，或私信bot以建立私密游戏（游戏名称可以通过\"#游戏列表\"查看）",
                      new_game<true>, VoidChecker("#新游戏"), AnyArg("游戏名称", "某游戏名")),
         make_command("在当前房间建立公开游戏，或私信bot以建立私密游戏，并进行游戏参数的配置（游戏名称可以通过\"#"
                      "游戏列表\"查看）",
                      new_game<false>, VoidChecker("#配置新游戏"), AnyArg("游戏名称", "某游戏名")),
         make_command("完成游戏参数配置后，允许玩家进入房间", config_over, VoidChecker("#配置完成")),
+        make_command("设置参与游戏的AI数量", set_com_num, VoidChecker("#电脑数量"), ArithChecker<uint32_t>(0, 12, "数量")),
         make_command("房主开始游戏", start_game, VoidChecker("#开始游戏")),
+
+        // JOIN/LEAVE GAME: can only be executed by player
         make_command("加入当前房间的公开游戏", join_public, VoidChecker("#加入游戏")),
         make_command("私信bot以加入私密游戏（私密比赛编号可以通过\"#私密游戏列表\"查看）", join_private,
                      VoidChecker("#加入游戏"), BasicChecker<MatchID>("私密比赛编号")),

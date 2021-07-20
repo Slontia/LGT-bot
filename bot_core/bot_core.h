@@ -31,6 +31,7 @@ ERRCODE_DEF(EC_MATCH_NOT_IN_CONFIG)
 ERRCODE_DEF(EC_MATCH_ACHIEVE_MAX_PLAYER)
 ERRCODE_DEF(EC_MATCH_UNEXPECTED_CONFIG)
 ERRCODE_DEF(EC_MATCH_ALREADY_OVER)
+ERRCODE_DEF(EC_MATCH_FORBID_OPERATION)
 
 ERRCODE_DEF_V(EC_REQUEST_EMPTY, 301)
 ERRCODE_DEF(EC_REQUEST_NOT_ADMIN)
@@ -80,9 +81,10 @@ struct idname \
     return *this; \
   } \
   template <typename Outputter> \
-  friend Outputter& operator<<(Outputter& outputter, const idname id) { return outputter << id.id_; } \
+  friend auto& operator<<(Outputter& outputter, const idname id) { return outputter << id.id_; } \
   template <typename Inputter> \
   friend auto& operator>>(Inputter& inputter, idname& id) { return inputter >> id.id_; } \
+  bool IsValid() const { return UINT64_MAX != id_; } \
 \
  private: \
   uint64_t id_; \
@@ -91,6 +93,8 @@ struct idname \
 DEFINE_ID(UserID);
 DEFINE_ID(GroupID);
 DEFINE_ID(MatchID);
+DEFINE_ID(ComputerID);
+DEFINE_ID(PlayerID);
 
 extern "C" {
 

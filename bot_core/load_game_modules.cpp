@@ -30,16 +30,9 @@ class MsgSenderForGameImpl : public MsgSenderForGame
 
     virtual void String(const char* const str, const size_t len) { sender_ << std::string_view(str, len); }
 
-    virtual void PlayerName(const uint64_t pid)
-    {
-        if (match_.gid().has_value()) {
-            sender_ << GroupUserMsg(match_.pid2uid(pid), *match_.gid());
-        } else {
-            sender_ << UserMsg(match_.pid2uid(pid));
-        }
-    }
+    virtual void PlayerName(const uint64_t pid) { match_.PrintPlayer<false>(sender_, pid); }
 
-    virtual void AtPlayer(const uint64_t pid) { sender_ << AtMsg(match_.pid2uid(pid)); }
+    virtual void AtPlayer(const uint64_t pid) { match_.PrintPlayer<true>(sender_, pid); }
 
    private:
     Match& match_;

@@ -16,13 +16,15 @@ Game::Game(void* const match)
         : match_(match),
           main_stage_(nullptr),
           is_over_(false),
+          user_controlled_num_(0),
           help_cmd_(
                   Command<void(const replier_t&)>("查看游戏帮助", std::bind_front(&Game::Help_, this), VoidChecker("帮助")))
 {
 }
 
-bool Game::StartGame(const bool is_public, const uint64_t player_num)
+bool Game::StartGame(const bool is_public, const uint64_t user_controlled_num, const uint64_t com_num)
 {
+    const uint64_t player_num = user_controlled_num + com_num;
     assert(main_stage_ == nullptr);
     assert(k_max_player == 0 || player_num <= k_max_player);
     const replier_t reply = [this, is_public]() -> MsgSenderWrapper<MsgSenderForGame> {
@@ -36,6 +38,8 @@ bool Game::StartGame(const bool is_public, const uint64_t player_num)
 
     options_.SetPlayerNum(player_num);
     if (main_stage_ = MakeMainStage(reply, options_)) {
+        user_controlled_num_ = user_controlled_num;
+        com_num_ = com_num;
         g_game_prepare_cb(match_);
         main_stage_->Init(match_, std::bind(g_start_timer_cb, match_, std::placeholders::_1),
                           std::bind(g_stop_timer_cb, match_));
@@ -52,7 +56,7 @@ ErrCode /*__cdecl*/ Game::HandleRequest(const uint64_t pid, const bool is_public
     const replier_t reply = [this, pid, is_public]() { return this->Reply_(pid, is_public); };
 
     ErrCode rc = EC_GAME_REQUEST_OK;
-    std::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<std::mutex> l(lock_);
     if (is_over_) {
         reply() << "[错误] 差一点点，游戏已经结束了哦~";
         rc = EC_MATCH_ALREADY_OVER;
@@ -104,7 +108,7 @@ ErrCode  /*__cdecl*/Game::HandleLeave(const uint64_t pid, const bool is_public)
     const auto reply = [this, pid, is_public]() { return this->Reply_(pid, is_public); };
 
     ErrCode rc = EC_GAME_REQUEST_OK;
-    std::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<std::mutex> l(lock_);
     if (is_over_) {
         reply() << "[错误] 游戏已经结束了，已经……没有退出的理由了";
         rc = EC_MATCH_ALREADY_OVER;
@@ -138,7 +142,7 @@ ErrCode  /*__cdecl*/Game::HandleLeave(const uint64_t pid, const bool is_public)
 ErrCode Game::HandleTimeout(const bool* const stage_is_over)
 {
     ErrCode rc = EC_GAME_REQUEST_OK;
-    std::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<std::mutex> l(lock_);
     if (*stage_is_over) {
         return rc;
     }

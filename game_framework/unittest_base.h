@@ -57,7 +57,7 @@ class TestGame : public testing::Test
 
     virtual void SetDown() {}
 
-    bool StartGame() { return game_->StartGame(false /* is_public */, k_player_num); }
+    bool StartGame() { return game_->StartGame(false /* is_public */, k_player_num, 0); }
 
     Game& game() { return *game_; }
     auto& expected_scores() const { return expected_scores_; }

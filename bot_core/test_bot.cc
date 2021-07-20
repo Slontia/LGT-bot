@@ -4,7 +4,7 @@
 #include <gflags/gflags.h>
 
 DEFINE_string(game_path, "plugins", "The path of game modules");
-DEFINE_string(game_name, "猜拳游戏", "The path of game modules");
+DEFINE_string(game_name, "猜拳游戏", "The path of game modules (max player should be 2)");
 
 static std::ostream& operator<<(std::ostream& os, const ErrCode e) { return os << errcode2str(e); }
 
@@ -467,6 +467,45 @@ TEST_F(TestBot, interrupt_private_start_in_public)
   ASSERT_PRI_MSG(EC_OK, 1, "#开始游戏");
   ASSERT_PUB_MSG(EC_OK, 999, k_admin_qq, "%中断游戏 1");
   ASSERT_PRI_MSG(EC_OK, 1, ("#新游戏 " + FLAGS_game_name).c_str());
+}
+
+// Computer Player
+
+TEST_F(TestBot, set_computer)
+{
+  ASSERT_PRI_MSG(EC_OK, 1, ("#新游戏 " + FLAGS_game_name + " 电脑").c_str());
+  ASSERT_PRI_MSG(EC_OK, 1, "#电脑数量 1");
+  ASSERT_PRI_MSG(EC_MATCH_ACHIEVE_MAX_PLAYER, 2, ("#加入游戏 1"));
+  ASSERT_PRI_MSG(EC_OK, 1, "#开始游戏");
+}
+
+TEST_F(TestBot, set_computer_config)
+{
+  ASSERT_PRI_MSG(EC_OK, 1, ("#配置新游戏 " + FLAGS_game_name + " 电脑").c_str());
+  ASSERT_PRI_MSG(EC_OK, 1, "#电脑数量 1");
+  ASSERT_PRI_MSG(EC_OK, 1, "#配置完成");
+  ASSERT_PRI_MSG(EC_MATCH_ACHIEVE_MAX_PLAYER, 2, ("#加入游戏 1"));
+  ASSERT_PRI_MSG(EC_OK, 1, "#开始游戏");
+}
+
+TEST_F(TestBot, not_allow_set_computer)
+{
+  ASSERT_PRI_MSG(EC_OK, 1, ("#新游戏 " + FLAGS_game_name).c_str());
+  ASSERT_PRI_MSG(EC_MATCH_FORBID_OPERATION, 1, "#电脑数量 1");
+}
+
+TEST_F(TestBot, computer_exceed_max_player)
+{
+  ASSERT_PRI_MSG(EC_OK, 1, ("#新游戏 " + FLAGS_game_name + " 电脑").c_str());
+  ASSERT_PRI_MSG(EC_MATCH_ACHIEVE_MAX_PLAYER, 1, "#电脑数量 2");
+  ASSERT_PRI_MSG(EC_OK, 2, ("#加入游戏 1"));
+}
+
+TEST_F(TestBot, computer_exceed_max_player_when_config)
+{
+  ASSERT_PRI_MSG(EC_OK, 1, ("#配置新游戏 " + FLAGS_game_name + " 电脑").c_str());
+  ASSERT_PRI_MSG(EC_MATCH_ACHIEVE_MAX_PLAYER, 1, "#电脑数量 2");
+  ASSERT_PRI_MSG(EC_OK, 1, ("#配置完成"));
 }
 
 int main(int argc, char** argv)

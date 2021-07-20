@@ -36,6 +36,7 @@ endif()
 
 if (WITH_TEST)
   add_subdirectory(game_util) # only build for unittest
+  add_subdirectory(utility) # only build for unittest
 endif()
 
 option(WITH_GAMES "build with games" TRUE)
